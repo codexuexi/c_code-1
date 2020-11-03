@@ -1,0 +1,3 @@
+db.createUser({user:"codexuexiAdminRoot",pwd:"s2CKFngFPq4NuA6D",roles:[{role:"root",db:"admin"}]})
+
+db.auth("codexuexiAdminRoot","s2CKFngFPq4NuA6D")

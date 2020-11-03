@@ -1,0 +1,33 @@
+package c_code
+
+import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"strings"
+	"testing"
+)
+
+func TestGetZolPhone(t *testing.T) {
+	//GetZolPhone()
+	dir, err := ioutil.ReadDir("kc_tmp/")
+	if err != nil {
+		return
+	}
+	yu_list := []string{}
+	for _, v := range dir {
+		fmt.Println(len(v.Name()))
+		if len(v.Name()) == 10 {
+			file, err := ioutil.ReadFile("kc_tmp/" + v.Name())
+			if err == nil {
+				yu_list = append(yu_list, string(file))
+			}
+		}
+	}
+	l := []A{}
+	l_str := "[" + strings.Join(yu_list, ",") + "]"
+	json.Unmarshal([]byte(l_str), &l)
+	for _, v := range l {
+		fmt.Println(v.Version)
+	}
+}

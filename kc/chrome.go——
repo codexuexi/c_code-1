@@ -1,0 +1,174 @@
+package kc
+
+import (
+	"context"
+	"github.com/chromedp/cdproto/target"
+	"github.com/chromedp/chromedp"
+
+	"io/ioutil"
+	"log"
+	"os"
+	"time"
+)
+
+var ctx context.Context
+var quxiao2 context.CancelFunc
+
+func KCStartChrome(ua string) {
+	if ua == "" {
+		ua = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.87 Safari/537.36"
+	}
+	os.RemoveAll("c:\\click-temp\\")
+	os.MkdirAll("c:\\click-temp\\", os.ModePerm)
+	dir, err := ioutil.TempDir("c:\\click-temp\\", "chromedp-example")
+	if err != nil {
+		panic(err)
+	}
+
+	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.UserAgent(ua),
+		chromedp.DisableGPU,
+		chromedp.NoDefaultBrowserCheck,
+		chromedp.Flag("headless", false),
+		//chromedp.Flag("start-maximized", true),
+		chromedp.Flag("ignore-certificate-errors", true),
+		//chromedp.Flag("incognito", true),
+		chromedp.Flag("window-size", "1380,900"),
+		chromedp.UserDataDir(dir),
+		chromedp.Flag("disable-infobars", true),
+	)
+	chromelist := []string{
+		`C:\Users\123\Desktop\Chrome-bin\chrome.exe`,
+		`C:\Users\Administrator\Desktop\chrome\Chrome-bin\chrome.exe`,
+		`C:\Users\Administrator\AppData\Local\Google\Chrome\Application\chrome.exe`,
+		`C:\Program Files (x86)\Google\Chrome\Application\chrome.exe`,
+	}
+	for _, chrome_v := range chromelist {
+		b, _ := PathExists(chrome_v)
+		if b {
+			opts = append(opts, chromedp.ExecPath(chrome_v))
+			break
+		}
+	}
+
+	var allocCtx context.Context
+	allocCtx, quxiao2 = chromedp.NewExecAllocator(context.Background(), opts...)
+	// also set up a custom logger
+	ctx, quxiao2 = chromedp.NewContext(allocCtx, chromedp.WithLogf(log.Printf))
+	// create a timeout
+	//ctx, quxiao = context.WithTimeout(ctx, 120*time.Second)
+}
+
+func KCStartChromeNoJS(ua string) {
+	if ua == "" {
+		ua = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.87 Safari/537.36"
+	}
+	os.RemoveAll("c:\\click-temp\\")
+	os.MkdirAll("c:\\click-temp\\", os.ModePerm)
+	dir, err := ioutil.TempDir("c:\\click-temp\\", "chromedp-example")
+	if err != nil {
+		panic(err)
+	}
+
+	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.UserAgent(ua),
+		chromedp.DisableGPU,
+		chromedp.NoDefaultBrowserCheck,
+		chromedp.Flag("headless", false),
+		//chromedp.Flag("start-maximized", true),
+		chromedp.Flag("ignore-certificate-errors", true),
+		//chromedp.Flag("incognito", true),
+		chromedp.Flag("window-size", "350,500"),
+		chromedp.UserDataDir(dir),
+		chromedp.Flag("disable-infobars", true),
+		chromedp.Flag("blink-settings", "imagesEnabled=false"),
+		//chromedp.Flag("--disable-javascript", true),
+	)
+	chromelist := []string{
+		`C:\Users\123\Desktop\Chrome-bin\chrome.exe`,
+		`C:\Users\Administrator\Desktop\chrome\Chrome-bin\chrome.exe`,
+		`C:\Users\Administrator\AppData\Local\Google\Chrome\Application\chrome.exe`,
+		`C:\Program Files (x86)\Google\Chrome\Application\chrome.exe`,
+	}
+	for _, chrome_v := range chromelist {
+		b, _ := PathExists(chrome_v)
+		if b {
+			opts = append(opts, chromedp.ExecPath(chrome_v))
+			break
+		}
+	}
+
+	var allocCtx context.Context
+	allocCtx, quxiao2 = chromedp.NewExecAllocator(context.Background(), opts...)
+	// also set up a custom logger
+	ctx, quxiao2 = chromedp.NewContext(allocCtx, chromedp.WithLogf(log.Printf))
+	// create a timeout
+	//ctx, quxiao = context.WithTimeout(ctx, 120*time.Second)
+}
+
+func KCStartChromeSetProxy(ua, ipproxy string) {
+	os.MkdirAll("c:\\click-temp\\", os.ModePerm)
+	dir, err := ioutil.TempDir("c:\\click-temp\\", "chromedp-example")
+	if err != nil {
+		panic(err)
+	}
+	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.UserAgent(ua),
+
+		chromedp.DisableGPU,
+		chromedp.NoDefaultBrowserCheck,
+		chromedp.Flag("headless", false),
+		chromedp.Flag("ignore-certificate-errors", true),
+		//chromedp.Flag("incognito", true),
+		chromedp.Flag("window-size", "1380,900"),
+		chromedp.UserDataDir(dir),
+		chromedp.Flag("disable-infobars", true),
+		chromedp.ProxyServer("http://"+ipproxy),
+	)
+
+	chromelist := []string{`C:\Users\Administrator\Desktop\chrome\Chrome-bin\chrome.exe`, `C:\Users\Administrator\AppData\Local\Google\Chrome\Application\chrome.exe`}
+	for _, chrome_v := range chromelist {
+		b, _ := PathExists(chrome_v)
+		if b {
+			opts = append(opts, chromedp.ExecPath(chrome_v))
+			break
+		}
+	}
+
+	var allocCtx context.Context
+	allocCtx, quxiao2 = chromedp.NewExecAllocator(context.Background(), opts...)
+	// also set up a custom logger
+	ctx, quxiao2 = chromedp.NewContext(allocCtx, chromedp.WithLogf(log.Printf))
+	// create a timeout
+	ctx, quxiao2 = context.WithTimeout(ctx, 120*time.Second)
+}
+func KCGetNewTarget(_ctx2 context.Context) (target_ctx context.Context, target_ctx_close context.CancelFunc) {
+	ch := chromedp.WaitNewTarget(_ctx2, func(info *target.Info) bool {
+		return info.URL != ""
+	})
+	return chromedp.NewContext(_ctx2, chromedp.WithTargetID(<-ch))
+}
+func KCGetViewHtml(_ctx2 context.Context) string {
+	var _ht string
+	chromedp.Run(_ctx2, chromedp.OuterHTML("html", &_ht))
+	//	chromedp.Run(_ctx2, chromedp.Evaluate(`document.querySelector("html").outerHTML`, &_ht))
+	return _ht
+}
+
+func KCGetCtx() context.Context {
+	return ctx
+}
+
+func KCCloseChrome() {
+	quxiao2()
+}
+func PathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
+}

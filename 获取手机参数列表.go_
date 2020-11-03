@@ -1,0 +1,105 @@
+package c_code
+
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/PuerkitoBio/goquery"
+	"github.com/chromedp/cdproto/cdp"
+	"github.com/chromedp/chromedp"
+	"github.com/codexuexi/c_code/kc"
+	"io/ioutil"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+)
+
+type A struct {
+	Title   string
+	Version string
+}
+
+func GetZolPhone() {
+	c := &kc.KcBody{
+		Ctx:   nil,
+		Close: nil,
+		UA:    "",
+	}
+	c.Up()
+	chromedp.Run(c.Ctx, chromedp.Navigate("http://detail.zol.com.cn/cell_phone_index/subcate57_list_1.html"))
+	ExtViewInfo(c)
+	//检测是否存在下一页 存在则点击
+	for {
+		html := c.Html(c.Ctx)
+		doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
+		if err != nil {
+			break
+		}
+		atoi, err := strconv.Atoi(doc.Find(".page-box .sel").Text())
+		if err != nil {
+			break
+		}
+		if atoi > 100 {
+			break
+		}
+		next := doc.Find(".page-box a").Last().Text()
+		if !strings.Contains(next, "下一页") {
+			break
+		}
+		chromedp.Run(c.Ctx, chromedp.Click(".pagebar .next"))
+		time.Sleep(3)
+		ExtViewInfo(c)
+	}
+
+}
+
+func ExtViewInfo(c *kc.KcBody) {
+	time.Sleep(time.Second * 4)
+	phone_list := []*cdp.Node{}
+	print("检测节点")
+	chromedp.Run(c.Ctx, chromedp.Nodes(".pic-mode-box h3 a", &phone_list))
+	print(len(phone_list), "个节点")
+	for _, v := range phone_list {
+		info := GetAnAndroidInfo(c, v)
+		if info.Version != "" && info.Title != "" {
+			marshal, _ := json.Marshal(info)
+			ioutil.WriteFile("kc_tmp/"+fmt.Sprintf("%d", time.Now().Unix()), marshal, os.ModePerm)
+		}
+	}
+}
+
+func GetAnAndroidInfo(c *kc.KcBody, node *cdp.Node) (info A) {
+	err2 := chromedp.Run(c.Ctx, chromedp.MouseClickNode(node))
+	if err2 != nil {
+		return
+	}
+	target, ctx_close := c.GetNewTarget(c.Ctx)
+	defer ctx_close()
+	time.Sleep(time.Second * 2)
+
+	h := c.Html(target)
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(h))
+	if err != nil {
+		return
+	}
+	if doc.Find(".tab-con .section-more").Size() != 1 {
+		return
+	}
+	err2 = chromedp.Run(target, chromedp.Click(".tab-con .section-more"))
+
+	if err2 != nil {
+		return
+	}
+
+	t2, tx2 := c.GetNewTarget(target)
+	time.Sleep(time.Second * 2)
+	defer tx2()
+	html := c.Html(t2)
+	doc, err = goquery.NewDocumentFromReader(strings.NewReader(html))
+	if err != nil {
+		return
+	}
+	info.Title = doc.Find("h1").Text()
+	info.Version = doc.Find("#newPmVal_4").Text()
+	return
+}
