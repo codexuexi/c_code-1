@@ -1,4 +1,4 @@
-module github.com/123456/c_code
+module github.com/bbs-v2ex/c_code
 
 go 1.13
 
